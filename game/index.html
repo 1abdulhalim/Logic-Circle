@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Logic Circle</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ── HOME ───────────────────────────────────────────────────────────────── -->
+<div id="home" class="screen">
+  <h1>⚡ Logic Circle</h1>
+  <p>Learn logic gates by building real circuits — one puzzle at a time.</p>
+  <div class="home-gates">
+    <span class="home-gate-chip" style="background:#4f8ef7">AND</span>
+    <span class="home-gate-chip" style="background:#7c3aed">OR</span>
+    <span class="home-gate-chip" style="background:#e11d48">NOT</span>
+    <span class="home-gate-chip" style="background:#0891b2">XOR</span>
+    <span class="home-gate-chip" style="background:#d97706">NAND</span>
+    <span class="home-gate-chip" style="background:#059669">NOR</span>
+  </div>
+  <button id="play-btn" class="btn btn-primary">Play →</button>
+</div>
+
+<!-- ── LEVEL SELECT ────────────────────────────────────────────────────────── -->
+<div id="level-select" class="screen" style="flex-direction:column;align-items:center;">
+  <div style="display:flex;align-items:center;gap:14px;width:100%;max-width:880px;">
+    <button id="back-home-btn" class="btn btn-secondary" style="padding:8px 18px;">← Home</button>
+    <h2>Choose a Level</h2>
+  </div>
+  <div id="level-grid"></div>
+</div>
+
+<!-- ── GAME ────────────────────────────────────────────────────────────────── -->
+<div id="game" class="screen">
+
+  <!-- Top bar -->
+  <div id="game-header">
+    <button id="back-levels-btn" class="btn btn-secondary" style="padding:6px 14px;font-size:0.83rem;">← Levels</button>
+    <span id="game-level-title"></span>
+    <span id="game-description"></span>
+    <button id="hint-btn" class="btn btn-secondary" style="padding:6px 14px;font-size:0.83rem;">💡 Hint</button>
+  </div>
+
+  <!-- Canvas (inputs + gates + output all live here) -->
+  <div id="game-main">
+    <div id="canvas-wrap">
+      <div id="circuit-canvas"></div>
+      <svg id="wire-svg"></svg>
+
+      <div id="instruction-pill">Drag a gate → connect wires (output port → input port) → wire last gate to 💡 → Simulate</div>
+
+      <div id="hint-box" class="hidden">💡 <span id="hint-text"></span></div>
+
+      <div id="result-panel" class="hidden">
+        <div id="result-text"></div>
+        <div id="result-subtext"></div>
+        <button id="next-level-btn" class="btn btn-primary" style="padding:9px 22px;">Next Level →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom bar -->
+  <div id="bottom-bar">
+    <label>Gates:</label>
+    <div id="toolbox"></div>
+    <div class="controls">
+      <button id="reset-btn"    class="btn btn-secondary">↺ Reset</button>
+      <button id="simulate-btn" class="btn btn-primary">▶ Simulate</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/levels.js"></script>
+<script src="js/circuit.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>

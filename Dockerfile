@@ -1,10 +1,9 @@
-FROM python:3.10
+FROM python:3.10-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+COPY game/ ./game/
 
-COPY app/ ./app/
+EXPOSE 8501
 
-CMD ["python", "app/main.py"]
+CMD ["python", "-m", "http.server", "8501", "--directory", "game"]
