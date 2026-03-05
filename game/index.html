@@ -20,7 +20,10 @@
     <span class="home-gate-chip" style="background:#d97706">NAND</span>
     <span class="home-gate-chip" style="background:#059669">NOR</span>
   </div>
-  <button id="play-btn" class="btn btn-primary">Play →</button>
+  <div style="display:flex;gap:12px;">
+    <button id="play-btn"        class="btn btn-primary">Play →</button>
+    <button id="leaderboard-btn" class="btn btn-secondary">🏆 Leaderboard</button>
+  </div>
 </div>
 
 <!-- ── LEVEL SELECT ────────────────────────────────────────────────────────── -->
@@ -35,7 +38,6 @@
 <!-- ── GAME ────────────────────────────────────────────────────────────────── -->
 <div id="game" class="screen">
 
-  <!-- Top bar -->
   <div id="game-header">
     <button id="back-levels-btn" class="btn btn-secondary" style="padding:6px 14px;font-size:0.83rem;">← Levels</button>
     <span id="game-level-title"></span>
@@ -43,25 +45,33 @@
     <button id="hint-btn" class="btn btn-secondary" style="padding:6px 14px;font-size:0.83rem;">💡 Hint</button>
   </div>
 
-  <!-- Canvas (inputs + gates + output all live here) -->
   <div id="game-main">
     <div id="canvas-wrap">
       <div id="circuit-canvas"></div>
       <svg id="wire-svg"></svg>
 
       <div id="instruction-pill">Drag a gate → connect wires (output port → input port) → wire last gate to 💡 → Simulate</div>
-
       <div id="hint-box" class="hidden">💡 <span id="hint-text"></span></div>
 
+      <!-- Result panel -->
       <div id="result-panel" class="hidden">
         <div id="result-text"></div>
         <div id="result-subtext"></div>
-        <button id="next-level-btn" class="btn btn-primary" style="padding:9px 22px;">Next Level →</button>
+
+        <!-- Score submit row (shown on win) -->
+        <div id="score-submit-row" class="hidden">
+          <input id="player-name-input" type="text" maxlength="30" placeholder="Enter your name…" />
+          <button id="submit-score-btn" class="btn btn-primary" style="padding:8px 16px;font-size:0.88rem;">Submit Score</button>
+          <span id="submit-feedback"></span>
+        </div>
+
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:10px;">
+          <button id="next-level-btn" class="btn btn-primary" style="padding:9px 22px;">Next Level →</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Bottom bar -->
   <div id="bottom-bar">
     <label>Gates:</label>
     <div id="toolbox"></div>
@@ -73,8 +83,53 @@
 
 </div>
 
+<!-- ── LEADERBOARD ─────────────────────────────────────────────────────────── -->
+<div id="leaderboard" class="screen" style="flex-direction:column;align-items:center;padding:40px 24px;gap:28px;overflow-y:auto;">
+  <div style="display:flex;align-items:center;gap:14px;width:100%;max-width:700px;">
+    <button id="lb-back-btn" class="btn btn-secondary" style="padding:8px 18px;">← Home</button>
+    <h2>🏆 Leaderboard</h2>
+  </div>
+
+  <table id="leaderboard-table">
+    <thead>
+      <tr>
+        <th>Rank</th>
+        <th>Player</th>
+        <th>Stars</th>
+        <th>Levels</th>
+      </tr>
+    </thead>
+    <tbody id="leaderboard-body"></tbody>
+  </table>
+</div>
+
 <script src="js/levels.js"></script>
 <script src="js/circuit.js"></script>
 <script src="js/game.js"></script>
+
+<script>
+  // Score submit button handler
+  document.getElementById("submit-score-btn").addEventListener("click", async () => {
+    const nameInput = document.getElementById("player-name-input");
+    const feedback  = document.getElementById("submit-feedback");
+    const name = nameInput.value.trim();
+    if (!name) { feedback.textContent = "Please enter your name."; return; }
+
+    const stars = parseInt(document.getElementById("score-submit-row").dataset.stars);
+    const btn   = document.getElementById("submit-score-btn");
+    btn.disabled = true;
+    btn.textContent = "Saving…";
+
+    const ok = await submitScore(name, stars);
+    if (ok) {
+      feedback.textContent = "✅ Score saved!";
+      btn.textContent = "Submitted";
+    } else {
+      feedback.textContent = "❌ Failed to save.";
+      btn.disabled = false;
+      btn.textContent = "Submit Score";
+    }
+  });
+</script>
 </body>
 </html>

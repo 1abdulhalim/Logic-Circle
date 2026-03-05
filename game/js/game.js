@@ -28,6 +28,8 @@ function initHome() {
     initLevelSelect();
     showScreen("level-select");
   });
+  document.getElementById("leaderboard-btn").addEventListener("click", showLeaderboard);
+  document.getElementById("lb-back-btn").addEventListener("click", () => showScreen("home"));
 }
 
 // ─── Level Select ─────────────────────────────────────────────────────────────
@@ -453,6 +455,7 @@ function runSimulation() {
     showResult(true,
       `✅ Correct! Output = ${result.outputValue}`,
       `${renderStarsText(stars)}  (${used} gate${used !== 1 ? "s" : ""} used, par is ${currentLevel.par})`,
+      stars,
     );
   } else {
     bulb.classList.remove("solved");
@@ -463,16 +466,25 @@ function runSimulation() {
   }
 }
 
-function showResult(win, text, sub) {
+function showResult(win, text, sub, stars = null) {
   const panel = document.getElementById("result-panel");
   panel.classList.remove("hidden", "win", "lose");
   panel.classList.add(win ? "win" : "lose");
   document.getElementById("result-text").textContent    = text;
   document.getElementById("result-subtext").textContent = sub;
 
+  // Score submit row (only on win)
+  const submitRow = document.getElementById("score-submit-row");
+  if (win && stars !== null) {
+    submitRow.classList.remove("hidden");
+    submitRow.dataset.stars = stars;
+  } else {
+    submitRow.classList.add("hidden");
+  }
+
   const nextBtn = document.getElementById("next-level-btn");
   if (win) {
-    const nextLvl = LEVELS[currentLevel.id]; // id is 1-based → index
+    const nextLvl = LEVELS[currentLevel.id];
     if (nextLvl) {
       nextBtn.classList.remove("hidden");
       nextBtn.onclick = () => startLevel(nextLvl);
@@ -481,6 +493,54 @@ function showResult(win, text, sub) {
     }
   } else {
     nextBtn.classList.add("hidden");
+  }
+}
+
+// ─── Score submission ─────────────────────────────────────────────────────────
+
+async function submitScore(playerName, stars) {
+  try {
+    const res = await fetch("/api/scores", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        player_name: playerName,
+        level_id: currentLevel.id,
+        stars,
+      }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// ─── Leaderboard screen ───────────────────────────────────────────────────────
+
+async function showLeaderboard() {
+  showScreen("leaderboard");
+  const tbody = document.getElementById("leaderboard-body");
+  tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted)">Loading...</td></tr>`;
+
+  try {
+    const res  = await fetch("/api/leaderboard");
+    const data = await res.json();
+
+    if (data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted)">No scores yet — be the first!</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = data.map(row => `
+      <tr>
+        <td class="lb-rank">${row.rank}</td>
+        <td class="lb-name">${row.player_name}</td>
+        <td class="lb-stars">${"★".repeat(row.total_stars)}${"☆".repeat(Math.max(0, 30 - row.total_stars))}</td>
+        <td class="lb-levels">${row.levels_completed} / ${LEVELS.length}</td>
+      </tr>
+    `).join("");
+  } catch {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--red)">Could not load leaderboard.</td></tr>`;
   }
 }
 
