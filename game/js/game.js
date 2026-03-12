@@ -519,28 +519,51 @@ async function submitScore(playerName, stars) {
 
 async function showLeaderboard() {
   showScreen("leaderboard");
-  const tbody = document.getElementById("leaderboard-body");
-  tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted)">Loading...</td></tr>`;
+  await fetchLeaderboard();
+  document.getElementById("lb-refresh-btn").onclick = fetchLeaderboard;
+}
+
+async function fetchLeaderboard() {
+  const container = document.getElementById("lb-entries");
+  const maxStars  = LEVELS.length * 3;
+
+  container.innerHTML = `<div class="lb-loading">Loading...</div>`;
 
   try {
     const res  = await fetch("/api/leaderboard");
     const data = await res.json();
 
     if (data.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted)">No scores yet — be the first!</td></tr>`;
+      container.innerHTML = `<div class="lb-empty">No scores yet — be the first!</div>`;
       return;
     }
 
-    tbody.innerHTML = data.map(row => `
-      <tr>
-        <td class="lb-rank">${row.rank}</td>
-        <td class="lb-name">${row.player_name}</td>
-        <td class="lb-stars">${"★".repeat(row.total_stars)}${"☆".repeat(Math.max(0, 30 - row.total_stars))}</td>
-        <td class="lb-levels">${row.levels_completed} / ${LEVELS.length}</td>
-      </tr>
-    `).join("");
+    const medals = ["🥇", "🥈", "🥉"];
+
+    container.innerHTML = data.map((row, i) => {
+      const pct       = Math.round((row.total_stars / maxStars) * 100);
+      const medalOrNum = i < 3 ? `<span class="lb-medal">${medals[i]}</span>` : `<span class="lb-num">${row.rank}</span>`;
+
+      return `
+        <div class="lb-row ${i === 0 ? "lb-first" : ""}">
+          <div class="lb-left">
+            ${medalOrNum}
+            <div class="lb-info">
+              <span class="lb-name">${row.player_name}</span>
+              <span class="lb-sub">${row.levels_completed} / ${LEVELS.length} levels</span>
+            </div>
+          </div>
+          <div class="lb-right">
+            <span class="lb-star-count">${row.total_stars} <span style="color:var(--yellow)">★</span></span>
+            <div class="lb-bar-wrap">
+              <div class="lb-bar" style="width:${pct}%"></div>
+            </div>
+          </div>
+        </div>`;
+    }).join("");
+
   } catch {
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--red)">Could not load leaderboard.</td></tr>`;
+    container.innerHTML = `<div class="lb-empty" style="color:var(--red)">Could not load scores. Is the server running?</div>`;
   }
 }
 

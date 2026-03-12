@@ -84,23 +84,19 @@
 </div>
 
 <!-- ── LEADERBOARD ─────────────────────────────────────────────────────────── -->
-<div id="leaderboard" class="screen" style="flex-direction:column;align-items:center;padding:40px 24px;gap:28px;overflow-y:auto;">
-  <div style="display:flex;align-items:center;gap:14px;width:100%;max-width:700px;">
+<div id="leaderboard" class="screen" style="flex-direction:column;align-items:center;padding:40px 24px;gap:24px;overflow-y:auto;">
+
+  <div class="lb-header">
     <button id="lb-back-btn" class="btn btn-secondary" style="padding:8px 18px;">← Home</button>
-    <h2>🏆 Leaderboard</h2>
+    <div>
+      <h2>🏆 Leaderboard</h2>
+      <p class="lb-subtitle">Top players ranked by total stars</p>
+    </div>
+    <button id="lb-refresh-btn" class="btn btn-secondary" style="padding:8px 14px;" title="Refresh">↺</button>
   </div>
 
-  <table id="leaderboard-table">
-    <thead>
-      <tr>
-        <th>Rank</th>
-        <th>Player</th>
-        <th>Stars</th>
-        <th>Levels</th>
-      </tr>
-    </thead>
-    <tbody id="leaderboard-body"></tbody>
-  </table>
+  <div id="lb-entries"></div>
+
 </div>
 
 <script src="js/levels.js"></script>

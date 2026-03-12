@@ -6,20 +6,23 @@
 #
 # Also serves the game's static files (HTML/CSS/JS) at /
 
-from fastapi import FastAPI, HTTPException
-from fastapi.staticfiles import StaticFiles
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 import os
 
-from database import init_db, save_score, get_leaderboard
+from server.database import init_db, save_score, get_leaderboard
 
-# ── App setup ────────────────────────────────────────────────────────────────
+# ── App setup ─────────────────────────────────────────────────────────────────
 
-app = FastAPI(title="Logic Circle API")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    print("\n  Game running at: http://localhost:8501\n")
+    yield
 
-# Initialise the database on startup
-init_db()
+app = FastAPI(title="Logic Circle API", lifespan=lifespan)
 
 # ── Request / Response models ─────────────────────────────────────────────────
 
@@ -30,13 +33,13 @@ class ScoreSubmission(BaseModel):
 
 
 class LeaderboardEntry(BaseModel):
-    rank:              int
-    player_name:       str
-    total_stars:       int
-    levels_completed:  int
+    rank:             int
+    player_name:      str
+    total_stars:      int
+    levels_completed: int
 
 
-# ── API Routes ────────────────────────────────────────────────────────────────
+# ── API routes ────────────────────────────────────────────────────────────────
 
 @app.post("/api/scores", status_code=201)
 def submit_score(data: ScoreSubmission):
@@ -49,22 +52,17 @@ def submit_score(data: ScoreSubmission):
 def leaderboard():
     """Return top 10 players ranked by total stars earned."""
     rows = get_leaderboard(limit=10)
-    return [
-        LeaderboardEntry(rank=i + 1, **row)
-        for i, row in enumerate(rows)
-    ]
+    return [LeaderboardEntry(rank=i + 1, **row) for i, row in enumerate(rows)]
 
 
-# ── Serve the game's static files ────────────────────────────────────────────
+# ── Serve game files ──────────────────────────────────────────────────────────
 
 GAME_DIR = os.path.join(os.path.dirname(__file__), "..", "game")
 
-app.mount("/static", StaticFiles(directory=GAME_DIR), name="static")
-
 @app.get("/{full_path:path}")
 def serve_game(full_path: str):
-    """Catch-all: serve index.html for any unmatched route (SPA behaviour)."""
-    file_path = os.path.join(GAME_DIR, full_path) if full_path else ""
+    """Serve the game's static files; fall back to index.html."""
+    file_path = os.path.join(GAME_DIR, full_path)
     if full_path and os.path.isfile(file_path):
         return FileResponse(file_path)
     return FileResponse(os.path.join(GAME_DIR, "index.html"))
