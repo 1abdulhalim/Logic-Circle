@@ -7,12 +7,12 @@
 # Also serves the game's static files (HTML/CSS/JS) at /
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 import os
 
-from server.database import init_db, save_score, get_leaderboard
+from server.database import init_db, save_score, get_leaderboard, register_user, login_user
 
 # ── App setup ─────────────────────────────────────────────────────────────────
 
@@ -39,7 +39,31 @@ class LeaderboardEntry(BaseModel):
     levels_completed: int
 
 
+# ── Auth models ───────────────────────────────────────────────────────────────
+
+class AuthRequest(BaseModel):
+    username: str = Field(..., min_length=1, max_length=30)
+    password: str = Field(..., min_length=4, max_length=100)
+
+
 # ── API routes ────────────────────────────────────────────────────────────────
+
+@app.post("/api/register", status_code=201)
+def register(data: AuthRequest):
+    """Register a new account."""
+    ok = register_user(data.username, data.password)
+    if not ok:
+        raise HTTPException(status_code=409, detail="Username already taken")
+    return {"username": data.username}
+
+
+@app.post("/api/login")
+def login(data: AuthRequest):
+    """Login with existing credentials."""
+    ok = login_user(data.username, data.password)
+    if not ok:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    return {"username": data.username}
 
 @app.post("/api/scores", status_code=201)
 def submit_score(data: ScoreSubmission):

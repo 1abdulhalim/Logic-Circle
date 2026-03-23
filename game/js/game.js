@@ -1,5 +1,85 @@
 // ui.js — game UI, screens, drag/drop, wire drawing
 
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
+let currentUser = null; // { username, isGuest }
+
+function loadUser() {
+  try { return JSON.parse(localStorage.getItem("lc_user") || "null"); }
+  catch { return null; }
+}
+
+function saveUser(user) {
+  localStorage.setItem("lc_user", JSON.stringify(user));
+  currentUser = user;
+}
+
+function logout() {
+  localStorage.removeItem("lc_user");
+  currentUser = null;
+  showScreen("auth");
+}
+
+function continueAsGuest() {
+  saveUser({ username: "Guest", isGuest: true });
+  goHome();
+}
+
+function switchTab(tab) {
+  document.getElementById("tab-login").classList.toggle("active", tab === "login");
+  document.getElementById("tab-register").classList.toggle("active", tab === "register");
+  document.getElementById("auth-submit-btn").textContent = tab === "login" ? "Login" : "Create Account";
+  document.getElementById("auth-submit-btn").onclick = () => submitAuth(tab);
+  document.getElementById("auth-error").classList.add("hidden");
+}
+
+async function submitAuth(tab) {
+  const username = document.getElementById("auth-username").value.trim();
+  const password = document.getElementById("auth-password").value;
+  const errEl    = document.getElementById("auth-error");
+  const btn      = document.getElementById("auth-submit-btn");
+
+  if (!username) { errEl.textContent = "Enter a username."; errEl.classList.remove("hidden"); return; }
+  if (password.length < 4) { errEl.textContent = "Password must be at least 4 characters."; errEl.classList.remove("hidden"); return; }
+
+  btn.disabled = true;
+  btn.textContent = "Please wait…";
+  errEl.classList.add("hidden");
+
+  try {
+    const endpoint = tab === "login" ? "/api/login" : "/api/register";
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errEl.textContent = data.detail || "Something went wrong.";
+      errEl.classList.remove("hidden");
+    } else {
+      saveUser({ username: data.username, isGuest: false });
+      goHome();
+    }
+  } catch {
+    errEl.textContent = "Cannot reach server. Try again.";
+    errEl.classList.remove("hidden");
+  }
+
+  btn.disabled = false;
+  btn.textContent = tab === "login" ? "Login" : "Create Account";
+}
+
+function goHome() {
+  const welcome = document.getElementById("home-welcome");
+  if (currentUser) {
+    welcome.textContent = currentUser.isGuest
+      ? "Playing as Guest"
+      : `Welcome back, ${currentUser.username}!`;
+  }
+  showScreen("home");
+}
+
 const engine = new CircuitEngine();
 let currentLevel = null;
 let placedGates = [];
@@ -40,13 +120,14 @@ function initLevelSelect() {
   const progress = loadProgress();
 
   LEVELS.forEach((lvl, i) => {
-    const unlocked = i === 0 || (progress[i - 1]?.stars ?? 0) > 0;
+    const unlockIdx = lvl.unlocksAfter !== undefined ? lvl.unlocksAfter - 1 : i - 1;
+    const unlocked = i === 0 || unlockIdx < 0 || (progress[unlockIdx]?.stars ?? 0) > 0;
     const stars = progress[i]?.stars ?? 0;
 
     const card = document.createElement("div");
     card.className = "level-card" + (unlocked ? "" : " locked");
     card.innerHTML = `
-      <div class="level-number">Level ${lvl.id}</div>
+      <div class="level-number">Level ${lvl.id}${lvl.mode === "puzzle" ? ' <span class="puzzle-badge">Puzzle</span>' : ''}</div>
       <div class="level-title">${lvl.title}</div>
       <div class="level-stars">${renderStars(stars)}</div>
       ${!unlocked ? '<div class="lock-icon">🔒</div>' : ""}
@@ -90,10 +171,25 @@ function startLevel(lvl) {
   buildOutputNode(lvl);
   buildToolbox(lvl);
 
-  // Canvas-level mouse handlers (for wire dragging)
+  // Puzzle mode: place gates at fixed positions, user sets inputs manually
+  if (lvl.mode === "puzzle" && lvl.preplacedGates) {
+    lvl.preplacedGates.forEach(g => placePuzzleGate(g.type, g.x, g.y, g.id));
+  }
+
+  // Update instruction pill text
+  const pill = document.getElementById("instruction-pill");
+  if (pill) {
+    pill.textContent = lvl.mode === "puzzle"
+      ? "Wire the gates: click an output port → drag to an input port → connect last gate to 💡 → Simulate"
+      : "Drag a gate → connect wires (output port → input port) → wire last gate to 💡 → Simulate";
+  }
+
+  // Canvas-level mouse handlers (remove first to avoid stacking)
+  canvasEl.removeEventListener("mousemove", onCanvasMouseMove);
   canvasEl.addEventListener("mousemove", onCanvasMouseMove);
 
   // Global mouseup to finish or cancel wire
+  document.removeEventListener("mouseup", onGlobalMouseUp);
   document.addEventListener("mouseup", onGlobalMouseUp);
 
   // Buttons
@@ -105,17 +201,16 @@ function startLevel(lvl) {
     showScreen("level-select");
     initLevelSelect();
     document.removeEventListener("mouseup", onGlobalMouseUp);
+    canvasEl.removeEventListener("mousemove", onCanvasMouseMove);
+    canvasEl.removeEventListener("dragover", onCanvasDragOver);
+    canvasEl.removeEventListener("drop", onCanvasDrop);
   };
 
-  // Drag-drop gates onto canvas
-  canvasEl.addEventListener("dragover", e => e.preventDefault());
-  canvasEl.addEventListener("drop", e => {
-    e.preventDefault();
-    const type = e.dataTransfer.getData("gateType");
-    if (!type) return;
-    const rect = canvasEl.getBoundingClientRect();
-    placeGate(type, e.clientX - rect.left - 60, e.clientY - rect.top - 28);
-  });
+  // Drag-drop gates onto canvas (remove first to avoid stacking)
+  canvasEl.removeEventListener("dragover", onCanvasDragOver);
+  canvasEl.removeEventListener("drop", onCanvasDrop);
+  canvasEl.addEventListener("dragover", onCanvasDragOver);
+  canvasEl.addEventListener("drop", onCanvasDrop);
 
   syncSVGSize();
   window.onresize = syncSVGSize;
@@ -214,7 +309,14 @@ function buildOutputNode(lvl) {
 
 function buildToolbox(lvl) {
   const toolbox = document.getElementById("toolbox");
+  const barLabel = document.querySelector("#bottom-bar > label");
   toolbox.innerHTML = "";
+  if (lvl.mode === "puzzle") {
+    if (barLabel) barLabel.textContent = "Mode:";
+    toolbox.innerHTML = '<span class="puzzle-mode-chip">⚡ Puzzle — gates are pre-placed, just wire them up!</span>';
+    return;
+  }
+  if (barLabel) barLabel.textContent = "Gates:";
   lvl.availableGates.forEach(type => {
     const btn = document.createElement("div");
     btn.className = "toolbox-gate";
@@ -284,6 +386,58 @@ function placeGate(type, x, y) {
 
   canvasEl.appendChild(el);
   placedGates.push({ id, type, el });
+}
+
+// ─── Puzzle gate placement (pre-placed, no drag, no delete) ──────────────────
+
+function placePuzzleGate(type, x, y, gateId) {
+  const id = gateId;
+  engine.addGate(id, type);
+
+  const portsNeeded = GATE_INPUTS_NEEDED[type];
+  const inputPortsHTML = Array.from({ length: portsNeeded }, (_, i) => {
+    const topPct = portsNeeded === 1 ? 50 : i === 0 ? 28 : 72;
+    return `<div class="port input-port" data-gate="${id}" data-port="in${i}" style="top:${topPct}%"></div>`;
+  }).join("");
+
+  const el = document.createElement("div");
+  el.className = "placed-gate puzzle-gate";
+  el.id = id;
+  el.style.left = x + "px";
+  el.style.top  = y + "px";
+  el.style.background = GATE_COLORS[type];
+  el.innerHTML = `
+    ${inputPortsHTML}
+    <span class="gate-label">${type}</span>
+    <div class="port output-port" data-gate="${id}" data-port="out"></div>
+  `;
+
+  el.querySelector(".output-port").addEventListener("mousedown", e => {
+    e.preventDefault(); e.stopPropagation();
+    const pr = e.target.getBoundingClientRect();
+    const cr = canvasEl.getBoundingClientRect();
+    startWire({ type: "gate", gateId: id, x: pr.left - cr.left + 8, y: pr.top - cr.top + 8 });
+  });
+
+  el.querySelectorAll(".input-port").forEach(port => {
+    port.addEventListener("mouseup", e => {
+      e.stopPropagation();
+      finishWireAtGate(id, port.dataset.port);
+    });
+  });
+
+  canvasEl.appendChild(el);
+  placedGates.push({ id, type, el });
+}
+
+function onCanvasDragOver(e) { e.preventDefault(); }
+
+function onCanvasDrop(e) {
+  e.preventDefault();
+  const type = e.dataTransfer.getData("gateType");
+  if (!type) return;
+  const rect = canvasEl.getBoundingClientRect();
+  placeGate(type, e.clientX - rect.left - 60, e.clientY - rect.top - 28);
 }
 
 function makeDraggable(el) {
@@ -449,12 +603,16 @@ function runSimulation() {
   const bulb = document.getElementById("output-node");
   if (result.outputValue === currentLevel.targetOutput) {
     const used  = placedGates.length;
-    const stars = used <= currentLevel.par ? 3 : used <= currentLevel.par + 2 ? 2 : 1;
+    const stars = currentLevel.mode === "puzzle" ? 3 :
+      (used <= currentLevel.par ? 3 : used <= currentLevel.par + 2 ? 2 : 1);
+    const resultSub = currentLevel.mode === "puzzle"
+      ? `${renderStarsText(3)}  (Circuit wired correctly!)`
+      : `${renderStarsText(stars)}  (${used} gate${used !== 1 ? "s" : ""} used, par is ${currentLevel.par})`;
     saveProgress(currentLevel.id - 1, stars);
     bulb.classList.add("solved");
     showResult(true,
       `✅ Correct! Output = ${result.outputValue}`,
-      `${renderStarsText(stars)}  (${used} gate${used !== 1 ? "s" : ""} used, par is ${currentLevel.par})`,
+      resultSub,
       stars,
     );
   } else {
@@ -473,11 +631,13 @@ function showResult(win, text, sub, stars = null) {
   document.getElementById("result-text").textContent    = text;
   document.getElementById("result-subtext").textContent = sub;
 
-  // Score submit row (only on win)
+  // Score submit row (only on win, hidden for guests)
   const submitRow = document.getElementById("score-submit-row");
-  if (win && stars !== null) {
+  if (win && stars !== null && currentUser && !currentUser.isGuest) {
     submitRow.classList.remove("hidden");
     submitRow.dataset.stars = stars;
+    const nameInput = document.getElementById("player-name-input");
+    nameInput.value = currentUser.username;
   } else {
     submitRow.classList.add("hidden");
   }
@@ -573,19 +733,31 @@ function renderStarsText(n) {
 
 // ─── Progress ─────────────────────────────────────────────────────────────────
 
+function progressKey() {
+  const name = currentUser?.username || "guest";
+  return `lc_progress_${name}`;
+}
+
 function loadProgress() {
-  try { return JSON.parse(localStorage.getItem("lc_progress") || "{}"); }
+  try { return JSON.parse(localStorage.getItem(progressKey()) || "{}"); }
   catch { return {}; }
 }
+
 function saveProgress(index, stars) {
   const p = loadProgress();
   if (!p[index] || p[index].stars < stars) p[index] = { stars };
-  localStorage.setItem("lc_progress", JSON.stringify(p));
+  localStorage.setItem(progressKey(), JSON.stringify(p));
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 document.addEventListener("DOMContentLoaded", () => {
   initHome();
-  showScreen("home");
+  switchTab("login");
+  currentUser = loadUser();
+  if (currentUser) {
+    goHome();
+  } else {
+    showScreen("auth");
+  }
 });

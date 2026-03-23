@@ -8,6 +8,30 @@
 </head>
 <body>
 
+<!-- ── AUTH ───────────────────────────────────────────────────────────────── -->
+<div id="auth" class="screen">
+  <div class="auth-card">
+    <h1 class="auth-title">⚡ Logic Circle</h1>
+    <p class="auth-sub">Sign in to save your scores to the leaderboard</p>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login"   onclick="switchTab('login')">Login</button>
+      <button class="auth-tab"        id="tab-register" onclick="switchTab('register')">Register</button>
+    </div>
+
+    <div class="auth-form">
+      <input id="auth-username" type="text"     maxlength="30" placeholder="Username" autocomplete="username" />
+      <input id="auth-password" type="password" maxlength="100" placeholder="Password (min 4 chars)" autocomplete="current-password" />
+      <div id="auth-error" class="auth-error hidden"></div>
+      <button id="auth-submit-btn" class="btn btn-primary" style="width:100%" onclick="submitAuth()">Login</button>
+    </div>
+
+    <div class="auth-divider">or</div>
+    <button class="btn btn-secondary" style="width:100%" onclick="continueAsGuest()">Continue as Guest</button>
+    <p class="auth-guest-note">Guests can play but scores won't be saved to the leaderboard</p>
+  </div>
+</div>
+
 <!-- ── HOME ───────────────────────────────────────────────────────────────── -->
 <div id="home" class="screen">
   <h1>⚡ Logic Circle</h1>
@@ -20,10 +44,12 @@
     <span class="home-gate-chip" style="background:#d97706">NAND</span>
     <span class="home-gate-chip" style="background:#059669">NOR</span>
   </div>
+  <p id="home-welcome" class="home-welcome"></p>
   <div style="display:flex;gap:12px;">
     <button id="play-btn"        class="btn btn-primary">Play →</button>
     <button id="leaderboard-btn" class="btn btn-secondary">🏆 Leaderboard</button>
   </div>
+  <button id="logout-btn" class="btn btn-secondary" style="font-size:0.8rem;padding:8px 20px;" onclick="logout()">Logout</button>
 </div>
 
 <!-- ── LEVEL SELECT ────────────────────────────────────────────────────────── -->
@@ -99,9 +125,9 @@
 
 </div>
 
-<script src="js/levels.js"></script>
-<script src="js/circuit.js"></script>
-<script src="js/game.js"></script>
+<script src="js/levels.js?v=2"></script>
+<script src="js/circuit.js?v=2"></script>
+<script src="js/game.js?v=2"></script>
 
 <script>
   // Score submit button handler
