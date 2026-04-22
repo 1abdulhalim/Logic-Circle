@@ -25,6 +25,7 @@ body {
 /* ── Screens ──────────────────────────────────────────────────────────────── */
 .screen { display: none; width: 100vw; height: 100vh; }
 .screen.active { display: flex; }
+.hidden { display: none; }
 
 /* ── Auth screen ──────────────────────────────────────────────────────────── */
 #auth {
@@ -67,7 +68,6 @@ body {
   background: #450a0a30; border: 1px solid #ef444440;
   border-radius: 7px; padding: 8px 12px; text-align: center;
 }
-.auth-error.hidden { display: none; }
 
 .auth-divider {
   text-align: center; color: var(--muted); font-size: 0.82rem;
@@ -311,7 +311,6 @@ body {
 }
 #result-panel.win  { border-color: var(--green); }
 #result-panel.lose { border-color: var(--red); }
-#result-panel.hidden { display: none; }
 #result-text    { font-size: 1.05rem; font-weight: 700; margin-bottom: 4px; }
 #result-subtext { font-size: 0.88rem; color: var(--muted); margin-bottom: 14px; }
 
@@ -320,7 +319,6 @@ body {
   display: flex; align-items: center; gap: 8px;
   margin-bottom: 10px; flex-wrap: wrap; justify-content: center;
 }
-#score-submit-row.hidden { display: none; }
 #player-name-input {
   padding: 8px 12px; border-radius: 8px;
   border: 1px solid var(--border); background: var(--bg);
@@ -393,7 +391,6 @@ body {
   border-radius: 10px; padding: 10px 14px; max-width: 230px;
   font-size: 0.88rem; color: #fde68a; z-index: 150;
 }
-#hint-box.hidden { display: none; }
 
 /* ── Instruction pill ─────────────────────────────────────────────────────── */
 #instruction-pill {
@@ -437,3 +434,178 @@ body {
   align-items: center;
   gap: 6px;
 }
+
+/* ── FSM level select ─────────────────────────────────────────────────────── */
+#fsm-level-select { padding: 32px 24px; gap: 16px; overflow-y: auto; }
+.level-grid {
+  display: flex; flex-wrap: wrap; gap: 16px;
+  justify-content: center; width: 100%; max-width: 880px; margin-top: 8px;
+}
+
+/* ── FSM game layout ──────────────────────────────────────────────────────── */
+#fsm-game  { flex-direction: column; }
+#fsm-header {
+  display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+  padding: 10px 20px; background: var(--surface); border-bottom: 1px solid var(--border);
+}
+#fsm-level-title { font-weight: 700; font-size: 1rem; }
+#fsm-main        { display: flex; flex: 1; overflow: hidden; }
+
+#fsm-diagram-wrap {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 20px; background: var(--bg); overflow: hidden;
+}
+#fsm-diagram { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+#fsm-diagram svg { max-height: 100%; }
+
+#fsm-panel {
+  width: 340px; flex-shrink: 0; overflow-y: auto;
+  background: var(--surface); border-left: 1px solid var(--border);
+  padding: 18px 16px; display: flex; flex-direction: column; gap: 14px;
+}
+
+/* ── FSM mode badge ───────────────────────────────────────────────────────── */
+.fsm-mode-badge {
+  padding: 3px 10px; border-radius: 999px; font-size: 0.72rem;
+  font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: white;
+}
+.fsm-mode-trace { background: #0891b2; }
+.fsm-mode-fill  { background: #7c3aed; }
+.fsm-mode-build { background: #e11d48; }
+
+/* ── FSM description + hint ──────────────────────────────────────────────── */
+.fsm-desc {
+  font-size: 0.85rem; color: var(--muted); line-height: 1.6; white-space: pre-line;
+}
+.fsm-hint-box {
+  background: #1e293b; border: 1px solid #334155;
+  border-radius: 9px; padding: 10px 13px;
+  font-size: 0.83rem; color: #fbbf24; line-height: 1.5;
+}
+
+/* ── Trace mode ───────────────────────────────────────────────────────────── */
+.fsm-current-row {
+  font-size: 0.88rem; color: var(--muted);
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 9px; padding: 10px 13px;
+}
+.fsm-state-name { color: #818cf8; font-size: 1.05rem; }
+
+.fsm-inputs {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 5px;
+  padding: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 9px;
+}
+.fsm-chip {
+  padding: 4px 11px; border-radius: 999px; font-size: 0.8rem; font-weight: 600;
+  background: #1e3a5f; color: #93c5fd; border: 1px solid #2563eb44; transition: all 0.2s;
+}
+.fsm-chip.done   { background: #14532d; color: #86efac; border-color: #16a34a44; }
+.fsm-chip.active { background: #6366f1; color: white;   border-color: #818cf8;   animation: chipPulse 1s infinite; }
+.fsm-chip.error  { background: #7f1d1d; color: #fca5a5; border-color: #ef444444; }
+.fsm-arrow { color: var(--muted); font-size: 0.75rem; }
+@keyframes chipPulse { 0%,100% { box-shadow: 0 0 0 0 #6366f180; } 50% { box-shadow: 0 0 0 5px #6366f100; } }
+
+.fsm-trace-prompt {
+  font-size: 0.88rem; color: var(--text); font-weight: 600;
+  background: #1e293b; border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 12px; text-align: center;
+}
+.fsm-state-btns {
+  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+}
+.fsm-state-btn {
+  padding: 10px 18px; border-radius: 10px; border: 2px solid var(--border);
+  background: var(--bg); color: var(--text); font-size: 0.9rem; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+}
+.fsm-state-btn:hover  { border-color: var(--accent); color: var(--accent); }
+.fsm-state-btn.correct { border-color: var(--green); background: #14532d40; color: var(--green); }
+.fsm-state-btn.wrong   { border-color: var(--red);   background: #7f1d1d40; color: var(--red);   animation: shake 0.3s; }
+@keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+
+/* ── Transition table ─────────────────────────────────────────────────────── */
+.fsm-table {
+  width: 100%; border-collapse: collapse; font-size: 0.82rem;
+  border-radius: 10px; overflow: hidden; border: 1px solid var(--border);
+}
+.fsm-table th {
+  background: #0f172a; color: var(--muted); font-weight: 600;
+  padding: 8px 10px; text-align: center; border-bottom: 1px solid var(--border);
+}
+.fsm-table td { padding: 6px 8px; border: 1px solid #1e293b; text-align: center; vertical-align: middle; }
+.fsm-state-cell { font-weight: 700; color: #818cf8; background: #0f172a; text-align: left !important; padding-left: 12px !important; }
+.fsm-cell.fsm-known { color: var(--text); font-weight: 600; }
+.fsm-cell.fsm-na    { color: var(--border); }
+.fsm-cell.fsm-editable { background: #0f172a; }
+.fsm-cell-select {
+  width: 100%; padding: 4px 6px; border-radius: 6px;
+  border: 1px solid var(--border); background: #1e293b;
+  color: var(--text); font-size: 0.8rem; cursor: pointer;
+}
+.fsm-cell-select:focus { outline: none; border-color: var(--accent); }
+.fsm-cell-error .fsm-cell-select { border-color: var(--red); background: #7f1d1d30; }
+
+/* ── Test cases ───────────────────────────────────────────────────────────── */
+#fsm-test-cases { display: flex; flex-direction: column; gap: 6px; }
+.fsm-test-case {
+  display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap;
+  padding: 8px 11px; border-radius: 9px; border: 1px solid var(--border);
+  background: var(--bg); font-size: 0.8rem;
+  transition: background 0.2s, border-color 0.2s;
+}
+.fsm-test-case.pass { background: #14532d30; border-color: #16a34a55; }
+.fsm-test-case.fail { background: #7f1d1d30; border-color: #ef444455; }
+.tc-badge {
+  padding: 2px 7px; border-radius: 999px; font-weight: 700; font-size: 0.75rem; flex-shrink: 0;
+}
+.tc-badge.pending { background: #334155; color: var(--muted); }
+.tc-badge.pass    { background: #14532d; color: #86efac; }
+.tc-badge.fail    { background: #7f1d1d; color: #fca5a5; max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tc-label { font-weight: 600; color: var(--text); }
+.tc-path  { color: var(--muted); font-size: 0.77rem; flex-basis: 100%; margin-top: 2px; }
+
+/* ── FSM result ───────────────────────────────────────────────────────────── */
+.fsm-result {
+  padding: 11px 14px; border-radius: 10px;
+  font-size: 0.88rem; font-weight: 600; text-align: center; line-height: 1.5;
+}
+.fsm-result.win  { background: #14532d40; color: #86efac; border: 1px solid #16a34a44; }
+.fsm-result.lose { background: #7f1d1d40; color: #fca5a5; border: 1px solid #ef444444; }
+.fsm-loading { color: var(--muted); font-size: 0.85rem; text-align: center; }
+
+/* ── Clickable SVG nodes (trace mode) ────────────────────────────────────── */
+.fsm-node-clickable { cursor: pointer; }
+.fsm-node-clickable ellipse,
+.fsm-node-clickable circle {
+  transition: stroke 0.15s, stroke-width 0.15s;
+}
+.fsm-node-clickable:hover ellipse,
+.fsm-node-clickable:hover circle {
+  stroke: #6366f1 !important;
+  stroke-width: 3px !important;
+}
+
+/* ── Sim panel (try it yourself) ─────────────────────────────────────────── */
+.fsm-sim-panel {
+  border-top: 1px solid var(--border); padding-top: 14px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.fsm-sim-label { font-size: 0.88rem; font-weight: 700; color: var(--text); }
+.fsm-sim-sub   { font-size: 0.78rem; color: var(--muted); margin-top: -4px; }
+.fsm-sim-row   { display: flex; gap: 8px; }
+.fsm-sim-input {
+  flex: 1; padding: 8px 11px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--bg);
+  color: var(--text); font-size: 0.85rem;
+}
+.fsm-sim-input:focus { outline: none; border-color: var(--accent); }
+.fsm-sim-path {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
+  min-height: 28px; padding: 8px 10px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  font-size: 0.82rem;
+}
+.sim-state  { background: #1e293b; border: 1px solid #334155; padding: 3px 10px; border-radius: 6px; color: #818cf8; font-weight: 600; }
+.sim-via    { color: var(--muted); font-size: 0.75rem; }
+.sim-arrow  { color: var(--muted); }
+.sim-error  { color: var(--red); font-size: 0.8rem; }

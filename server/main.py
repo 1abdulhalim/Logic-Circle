@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 import os
 
 from server.database import init_db, save_score, get_leaderboard, register_user, login_user
+from server.fsm import build_diagram, run_fsm
 
 # ── App setup ─────────────────────────────────────────────────────────────────
 
@@ -50,7 +51,6 @@ class AuthRequest(BaseModel):
 
 @app.post("/api/register", status_code=201)
 def register(data: AuthRequest):
-    """Register a new account."""
     ok = register_user(data.username, data.password)
     if not ok:
         raise HTTPException(status_code=409, detail="Username already taken")
@@ -59,11 +59,11 @@ def register(data: AuthRequest):
 
 @app.post("/api/login")
 def login(data: AuthRequest):
-    """Login with existing credentials."""
     ok = login_user(data.username, data.password)
     if not ok:
         raise HTTPException(status_code=401, detail="Invalid username or password")
     return {"username": data.username}
+
 
 @app.post("/api/scores", status_code=201)
 def submit_score(data: ScoreSubmission):
@@ -77,6 +77,39 @@ def leaderboard():
     """Return top 10 players ranked by total stars earned."""
     rows = get_leaderboard(limit=10)
     return [LeaderboardEntry(rank=i + 1, **row) for i, row in enumerate(rows)]
+
+
+# ── FSM models ───────────────────────────────────────────────────────────────
+
+class FSMDiagramRequest(BaseModel):
+    states:            list[str]
+    initial:           str
+    transitions:       dict
+    accepting:         list[str] = []
+    current_state:     str | None = None
+    active_transition: list[str] | None = None
+
+
+class FSMSimulateRequest(BaseModel):
+    initial:     str
+    transitions: dict
+    inputs:      list[str]
+
+
+# ── FSM routes ────────────────────────────────────────────────────────────────
+
+@app.post("/api/fsm/diagram")
+def fsm_diagram(data: FSMDiagramRequest):
+    svg = build_diagram(
+        data.states, data.initial, data.transitions,
+        data.accepting, data.current_state, data.active_transition,
+    )
+    return {"svg": svg}
+
+
+@app.post("/api/fsm/simulate")
+def fsm_simulate(data: FSMSimulateRequest):
+    return run_fsm(data.initial, data.transitions, data.inputs)
 
 
 # ── Serve game files ──────────────────────────────────────────────────────────

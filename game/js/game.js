@@ -1,4 +1,4 @@
-// ui.js — game UI, screens, drag/drop, wire drawing
+// game.js — game UI, screens, drag/drop, wire drawing
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
@@ -30,6 +30,8 @@ function switchTab(tab) {
   document.getElementById("tab-register").classList.toggle("active", tab === "register");
   document.getElementById("auth-submit-btn").textContent = tab === "login" ? "Login" : "Create Account";
   document.getElementById("auth-submit-btn").onclick = () => submitAuth(tab);
+  document.getElementById("auth-username").value = "";
+  document.getElementById("auth-password").value = "";
   document.getElementById("auth-error").classList.add("hidden");
 }
 
@@ -108,6 +110,10 @@ function initHome() {
     initLevelSelect();
     showScreen("level-select");
   });
+  document.getElementById("fsm-btn").addEventListener("click", () => {
+    initFSMLevelSelect();
+    showScreen("fsm-level-select");
+  });
   document.getElementById("leaderboard-btn").addEventListener("click", showLeaderboard);
   document.getElementById("lb-back-btn").addEventListener("click", () => showScreen("home"));
 }
@@ -173,7 +179,7 @@ function startLevel(lvl) {
 
   // Puzzle mode: place gates at fixed positions, user sets inputs manually
   if (lvl.mode === "puzzle" && lvl.preplacedGates) {
-    lvl.preplacedGates.forEach(g => placePuzzleGate(g.type, g.x, g.y, g.id));
+    lvl.preplacedGates.forEach(g => placeGate(g.type, g.x, g.y, g.id));
   }
 
   // Update instruction pill text
@@ -184,11 +190,9 @@ function startLevel(lvl) {
       : "Drag a gate → connect wires (output port → input port) → wire last gate to 💡 → Simulate";
   }
 
-  // Canvas-level mouse handlers (remove first to avoid stacking)
   canvasEl.removeEventListener("mousemove", onCanvasMouseMove);
   canvasEl.addEventListener("mousemove", onCanvasMouseMove);
 
-  // Global mouseup to finish or cancel wire
   document.removeEventListener("mouseup", onGlobalMouseUp);
   document.addEventListener("mouseup", onGlobalMouseUp);
 
@@ -206,7 +210,6 @@ function startLevel(lvl) {
     canvasEl.removeEventListener("drop", onCanvasDrop);
   };
 
-  // Drag-drop gates onto canvas (remove first to avoid stacking)
   canvasEl.removeEventListener("dragover", onCanvasDragOver);
   canvasEl.removeEventListener("drop", onCanvasDrop);
   canvasEl.addEventListener("dragover", onCanvasDragOver);
@@ -330,8 +333,9 @@ function buildToolbox(lvl) {
 
 // ─── Gate placement ───────────────────────────────────────────────────────────
 
-function placeGate(type, x, y) {
-  const id  = `gate_${++gateCounter}`;
+function placeGate(type, x, y, puzzleId = null) {
+  const isPuzzle = puzzleId !== null;
+  const id = isPuzzle ? puzzleId : `gate_${++gateCounter}`;
   engine.addGate(id, type);
 
   const portsNeeded = GATE_INPUTS_NEEDED[type];
@@ -341,76 +345,30 @@ function placeGate(type, x, y) {
   }).join("");
 
   const el = document.createElement("div");
-  el.className = "placed-gate";
+  el.className = "placed-gate" + (isPuzzle ? " puzzle-gate" : "");
   el.id = id;
-  el.style.left = Math.max(120, x) + "px";
-  el.style.top  = Math.max(8, y)   + "px";
+  el.style.left = (isPuzzle ? x : Math.max(120, x)) + "px";
+  el.style.top  = (isPuzzle ? y : Math.max(8, y))   + "px";
   el.style.background = GATE_COLORS[type];
   el.innerHTML = `
     ${inputPortsHTML}
     <span class="gate-label">${type}</span>
     <div class="port output-port" data-gate="${id}" data-port="out"></div>
-    <div class="gate-delete" title="Delete">✕</div>
+    ${isPuzzle ? "" : '<div class="gate-delete" title="Delete">✕</div>'}
   `;
 
-  // Drag gate around canvas
-  makeDraggable(el);
-
-  // Output port → start wire
-  el.querySelector(".output-port").addEventListener("mousedown", e => {
-    e.preventDefault(); e.stopPropagation();
-    const pr = e.target.getBoundingClientRect();
-    const cr = canvasEl.getBoundingClientRect();
-    startWire({ type: "gate", gateId: id, x: pr.left - cr.left + 8, y: pr.top - cr.top + 8 });
-  });
-
-  // Input ports → finish wire
-  el.querySelectorAll(".input-port").forEach(port => {
-    port.addEventListener("mouseup", e => {
+  if (!isPuzzle) {
+    makeDraggable(el);
+    el.querySelector(".gate-delete").addEventListener("click", e => {
       e.stopPropagation();
-      finishWireAtGate(id, port.dataset.port);
+      engine.removeGate(id);
+      engine.wires = engine.wires.filter(w => !(w.from.gateId === id && w.to?.outputNode));
+      if (engine.outputNode === id) engine.outputNode = null;
+      placedGates = placedGates.filter(g => g.id !== id);
+      el.remove();
+      redrawWires();
     });
-  });
-
-  // Delete gate
-  el.querySelector(".gate-delete").addEventListener("click", e => {
-    e.stopPropagation();
-    engine.removeGate(id);
-    // Also remove any output-node wire pointing from this gate
-    engine.wires = engine.wires.filter(w => !(w.from.gateId === id && w.to?.outputNode));
-    if (engine.outputNode === id) engine.outputNode = null;
-    placedGates = placedGates.filter(g => g.id !== id);
-    el.remove();
-    redrawWires();
-  });
-
-  canvasEl.appendChild(el);
-  placedGates.push({ id, type, el });
-}
-
-// ─── Puzzle gate placement (pre-placed, no drag, no delete) ──────────────────
-
-function placePuzzleGate(type, x, y, gateId) {
-  const id = gateId;
-  engine.addGate(id, type);
-
-  const portsNeeded = GATE_INPUTS_NEEDED[type];
-  const inputPortsHTML = Array.from({ length: portsNeeded }, (_, i) => {
-    const topPct = portsNeeded === 1 ? 50 : i === 0 ? 28 : 72;
-    return `<div class="port input-port" data-gate="${id}" data-port="in${i}" style="top:${topPct}%"></div>`;
-  }).join("");
-
-  const el = document.createElement("div");
-  el.className = "placed-gate puzzle-gate";
-  el.id = id;
-  el.style.left = x + "px";
-  el.style.top  = y + "px";
-  el.style.background = GATE_COLORS[type];
-  el.innerHTML = `
-    ${inputPortsHTML}
-    <span class="gate-label">${type}</span>
-    <div class="port output-port" data-gate="${id}" data-port="out"></div>
-  `;
+  }
 
   el.querySelector(".output-port").addEventListener("mousedown", e => {
     e.preventDefault(); e.stopPropagation();
@@ -631,7 +589,6 @@ function showResult(win, text, sub, stars = null) {
   document.getElementById("result-text").textContent    = text;
   document.getElementById("result-subtext").textContent = sub;
 
-  // Score submit row (only on win, hidden for guests)
   const submitRow = document.getElementById("score-submit-row");
   if (win && stars !== null && currentUser && !currentUser.isGuest) {
     submitRow.classList.remove("hidden");
