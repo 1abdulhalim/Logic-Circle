@@ -41,8 +41,16 @@ async function submitAuth(tab) {
   const errEl    = document.getElementById("auth-error");
   const btn      = document.getElementById("auth-submit-btn");
 
-  if (!username) { errEl.textContent = "Enter a username."; errEl.classList.remove("hidden"); return; }
-  if (password.length < 4) { errEl.textContent = "Password must be at least 4 characters."; errEl.classList.remove("hidden"); return; }
+  if (!username) {
+    errEl.innerHTML = "❌ <strong>Enter a username</strong>";
+    errEl.classList.remove("hidden");
+    return;
+  }
+  if (password.length < 4) {
+    errEl.innerHTML = "❌ <strong>Password must be 4+ characters</strong>";
+    errEl.classList.remove("hidden");
+    return;
+  }
 
   btn.disabled = true;
   btn.textContent = "Please wait…";
@@ -163,7 +171,7 @@ function startLevel(lvl) {
   showScreen("game");
 
   document.getElementById("game-level-title").textContent = `Level ${lvl.id}: ${lvl.title}`;
-  document.getElementById("game-description").textContent = lvl.description;
+  document.getElementById("game-description").textContent = "";
   document.getElementById("hint-text").textContent = lvl.hint;
   document.getElementById("hint-box").classList.add("hidden");
   document.getElementById("result-panel").classList.add("hidden");
@@ -711,6 +719,14 @@ function saveProgress(index, stars) {
 document.addEventListener("DOMContentLoaded", () => {
   initHome();
   switchTab("login");
+
+  // Allow Enter key to submit from either auth input
+  ["auth-username", "auth-password"].forEach(id => {
+    document.getElementById(id).addEventListener("keydown", e => {
+      if (e.key === "Enter") document.getElementById("auth-submit-btn").click();
+    });
+  });
+
   currentUser = loadUser();
   if (currentUser) {
     goHome();

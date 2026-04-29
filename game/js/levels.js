@@ -160,7 +160,7 @@ const LEVELS = [
   {
     id: 14,
     title: "XOR Maze",
-    description: "XOR and AND are placed. A=1, B=1, C=0 — wire them to get output 0.",
+    description: "XOR and AND are placed. Wire them to get the correct output.",
     hint: "XOR(A=1, B=1) = 0. AND(0, C=0) = 0. So A,B → XOR → AND, C → AND.",
     inputs: { A: 1, B: 1, C: 0 },
     targetOutput: 0,
@@ -176,7 +176,7 @@ const LEVELS = [
   {
     id: 15,
     title: "Master Wirer",
-    description: "Four gates placed: AND, OR, XOR, NOT. Wire A=1, B=0, C=1 through all of them to get output 0.",
+    description: "Four gates placed: AND, OR, XOR, NOT. Wire A, B, C through all of them to get the correct output.",
     hint: "AND(A,B)=0, OR(A,C)=1, XOR(AND,OR)=1, NOT(XOR)=0. Chain them left to right.",
     inputs: { A: 1, B: 0, C: 1 },
     targetOutput: 0,
@@ -201,11 +201,10 @@ const GATE_TRUTH = {
   XOR:  (a, b) => a ^ b,
   NAND: (a, b) => (a & b) ^ 1,
   NOR:  (a, b) => (a | b) ^ 1,
-  XNOR: (a, b) => (a ^ b) ^ 1,
 };
 
 const GATE_INPUTS_NEEDED = {
-  AND: 2, OR: 2, NOT: 1, XOR: 2, NAND: 2, NOR: 2, XNOR: 2,
+  AND: 2, OR: 2, NOT: 1, XOR: 2, NAND: 2, NOR: 2,
 };
 
 const GATE_COLORS = {
@@ -215,5 +214,4 @@ const GATE_COLORS = {
   XOR:  "#0891b2",
   NAND: "#d97706",
   NOR:  "#059669",
-  XNOR: "#db2777",
 };

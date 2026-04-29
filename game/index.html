@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>Logic Circle</title>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -126,85 +129,18 @@
 
 </div>
 
-<!-- ── FSM LEVEL SELECT ─────────────────────────────────────────────────────── -->
-<div id="fsm-level-select" class="screen" style="flex-direction:column;align-items:center;">
-  <div style="display:flex;align-items:center;gap:14px;width:100%;max-width:880px;">
-    <button id="fsm-back-home-btn" class="btn btn-secondary" style="padding:8px 18px;">← Home</button>
-    <h2>⚙ State Machines</h2>
-  </div>
-  <p style="color:var(--muted);font-size:0.9rem;margin-top:-8px;">Trace and understand finite state machines</p>
-  <div id="fsm-level-grid" class="level-grid"></div>
-</div>
+<!-- ── FSM LEVEL SELECT (content injected by fsm.js) ─────────────────────── -->
+<div id="fsm-level-select" class="screen"></div>
 
-<!-- ── FSM GAME ────────────────────────────────────────────────────────────── -->
-<div id="fsm-game" class="screen">
+<!-- ── FSM GAME (content injected by fsm.js) ──────────────────────────────── -->
+<div id="fsm-game" class="screen"></div>
 
-  <div id="fsm-header">
-    <button id="fsm-game-back-btn" class="btn btn-secondary" style="padding:6px 14px;font-size:0.83rem;">← Levels</button>
-    <span id="fsm-level-title"></span>
-    <span id="fsm-level-badge"></span>
-    <button id="fsm-hint-btn" class="btn btn-secondary" style="padding:6px 14px;font-size:0.83rem;margin-left:auto;">💡 Hint</button>
-  </div>
 
-  <div id="fsm-main">
-
-    <!-- Left: Graphviz diagram -->
-    <div id="fsm-diagram-wrap">
-      <div id="fsm-diagram"></div>
-    </div>
-
-    <!-- Right: mode-specific panel -->
-    <div id="fsm-panel">
-
-      <p id="fsm-desc" class="fsm-desc"></p>
-      <div id="fsm-hint-box" class="hidden fsm-hint-box">💡 <span id="fsm-hint-text"></span></div>
-
-      <!-- ── Trace UI ─────────────────────────────────────────────────── -->
-      <div id="fsm-trace-ui" class="hidden">
-        <div class="fsm-current-row">
-          Current state: <strong id="fsm-trace-current" class="fsm-state-name"></strong>
-        </div>
-        <div id="fsm-trace-sequence" class="fsm-inputs"></div>
-        <p id="fsm-trace-prompt" class="fsm-trace-prompt"></p>
-        <div id="fsm-state-btns" class="fsm-state-btns"></div>
-        <button id="fsm-trace-reset" class="btn btn-secondary" style="width:100%;margin-top:8px;">↺ Reset</button>
-      </div>
-
-      <!-- ── Table UI (fill / build) ─────────────────────────────────── -->
-      <div id="fsm-table-ui" class="hidden">
-        <div id="fsm-transition-table"></div>
-        <div id="fsm-test-cases"></div>
-        <div style="display:flex;gap:8px;margin-top:10px;">
-          <button id="fsm-run-btn"   class="btn btn-primary"   style="flex:1">▶ Run Tests</button>
-          <button id="fsm-clear-btn" class="btn btn-secondary" style="flex:1">↺ Clear</button>
-        </div>
-
-        <!-- Try it yourself — shown after tests pass -->
-        <div id="fsm-sim-panel" class="hidden fsm-sim-panel">
-          <p class="fsm-sim-label">⚡ Try it yourself</p>
-          <p class="fsm-sim-sub">Type any input sequence to simulate your FSM</p>
-          <div class="fsm-sim-row">
-            <input id="fsm-sim-input" type="text" class="fsm-sim-input" placeholder="e.g. coin, buy, done" />
-            <button id="fsm-sim-run" class="btn btn-primary" style="padding:8px 14px;">Run</button>
-          </div>
-          <div id="fsm-sim-path" class="fsm-sim-path"></div>
-        </div>
-      </div>
-
-      <!-- ── Shared result + next ─────────────────────────────────────── -->
-      <div id="fsm-result" class="hidden"></div>
-      <button id="fsm-next-btn" class="btn btn-primary hidden" style="margin-top:8px;width:100%">Next Level →</button>
-
-    </div>
-  </div>
-
-</div>
-
-<script src="js/levels.js?v=2"></script>
-<script src="js/circuit.js?v=2"></script>
-<script src="js/game.js?v=2"></script>
-<script src="js/fsm-levels.js?v=1"></script>
-<script src="js/fsm.js?v=1"></script>
+<script src="js/levels.js?v=11"></script>
+<script src="js/circuit.js?v=11"></script>
+<script src="js/game.js?v=11"></script>
+<script src="js/fsm-levels.js?v=13"></script>
+<script src="js/fsm.js?v=13"></script>
 
 <script>
   // Score submit button handler

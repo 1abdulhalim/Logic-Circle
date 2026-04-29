@@ -106,14 +106,6 @@ class CircuitEngine {
     return { success: true, outputValue, signals: { ...this.signals } };
   }
 
-  // Returns signal on a wire: from a source to its output
-  getWireSignal(wire) {
-    if (wire.from.inputName !== undefined) {
-      return this.signals[`input:${wire.from.inputName}`] ?? null;
-    }
-    return this.signals[`gate:${wire.from.gateId}`] ?? null;
-  }
-
   _topoSort() {
     const visited = new Set();
     const inStack = new Set();
@@ -142,13 +134,5 @@ class CircuitEngine {
     }
 
     return order;
-  }
-
-  // Returns all wires as array with their computed signal values
-  getWiresWithSignals() {
-    return this.wires.map(w => ({
-      ...w,
-      signal: this.getWireSignal(w),
-    }));
   }
 }
